@@ -1,4 +1,7 @@
+import { Role } from './role.model';
+
 export interface JwtPayload {
-  sub: BinaryType;
+  sub: string;
   email: string;
+  role: Role;
 }

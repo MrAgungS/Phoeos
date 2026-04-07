@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { Role } from './role.model';
 
 export interface RequestUser {
-  id: number;
+  id: string;
   email: string;
   role: Role;
 }

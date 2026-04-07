@@ -5,6 +5,7 @@ import { DatabaseService } from 'src/common/database/database.service';
 import { JwtBlacklistService } from '../service/jwt-blacklist.service';
 import { JwtPayload } from '../model/jwt-payload.model';
 import { Request } from 'express';
+import { Role } from '../model/role.model';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -38,10 +39,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) throw new UnauthorizedException();
 
-    return {
-      id: user.id,
+    payload = {
+      sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as Role,
     };
+    return payload;
   }
 }
