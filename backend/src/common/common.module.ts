@@ -8,6 +8,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { ErrorFilter } from './error/error.filter';
+import { UuidUtils } from './utils/uuid.utils';
 
 @Global()
 @Module({
@@ -36,11 +37,12 @@ import { ErrorFilter } from './error/error.filter';
     RedisService,
     ValidationService,
     DatabaseService,
+    UuidUtils,
     {
       provide: APP_FILTER,
       useClass: ErrorFilter,
     },
   ],
-  exports: [RedisService, ValidationService, DatabaseService],
+  exports: [RedisService, ValidationService, DatabaseService, UuidUtils],
 })
 export class CommonModule {}

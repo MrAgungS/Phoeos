@@ -1,20 +1,26 @@
+import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export class UUIDUtils {
+@Injectable()
+export class UuidUtils {
+  // Generate a new UUID as a buffer (for INSERT queries)
   static generateBinary(): Buffer {
     const uuid = uuidv4().replace(/-/g, '');
     return Buffer.from(uuid, 'hex');
   }
 
-  static toBinary(uuidString: string): Buffer {
+  // Convert UUID string to a buffer (for WHERE queries)
+  static toUuidBinary(uuidString: string): Buffer {
     const hex = uuidString.replace(/-/g, '');
     return Buffer.from(hex, 'hex');
   }
 
-  static toString(binary: Buffer | string): string {
+  // Convert DB output buffer/binary to UUID string
+  static toUuidString(binary: Buffer | string): string {
     const hex = Buffer.isBuffer(binary)
       ? binary.toString('hex')
       : Buffer.from(binary, 'binary').toString('hex');
+
     return [
       hex.substring(0, 8),
       hex.substring(8, 12),
