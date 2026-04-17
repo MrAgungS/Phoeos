@@ -32,16 +32,26 @@ export class UsersService {
     private readonly blacklistService: JwtBlacklistService,
   ) {}
 
-  private generateAccessToken(user_id: string, email: string) {
+  private generateAccessToken(
+    user_id: string,
+    email: string,
+    name: string,
+    role: string,
+  ) {
     return this.jwtService.sign(
-      { sub: user_id, email },
+      { sub: user_id, email, name, role },
       { secret: process.env.JWT_SECRET, expiresIn: '15m' },
     );
   }
 
-  private generateRefreshToken(user_id: string, email: string) {
+  private generateRefreshToken(
+    user_id: string,
+    email: string,
+    name: string,
+    role: string,
+  ) {
     return this.jwtService.sign(
-      { sub: user_id, email },
+      { sub: user_id, email, name, role },
       { secret: process.env.JWT_SECRET, expiresIn: '7d' },
     );
   }
@@ -118,8 +128,18 @@ export class UsersService {
       throw new UnauthorizedException('invalid password');
     }
 
-    const access_token = this.generateAccessToken(user.id, user.email);
-    const refresh_token = this.generateRefreshToken(user.id, user.email);
+    const access_token = this.generateAccessToken(
+      user.id,
+      user.email,
+      user.name,
+      user.role,
+    );
+    const refresh_token = this.generateRefreshToken(
+      user.id,
+      user.email,
+      user.name,
+      user.role,
+    );
 
     await this.saveRefreshToken(user.id, refresh_token);
 
@@ -173,8 +193,18 @@ export class UsersService {
       throw new UnauthorizedException('User not found');
     }
 
-    const new_access_token = this.generateAccessToken(user.id, user.email);
-    const new_refresh_token = this.generateRefreshToken(user.id, user.email);
+    const new_access_token = this.generateAccessToken(
+      user.id,
+      user.email,
+      user.name,
+      user.role,
+    );
+    const new_refresh_token = this.generateRefreshToken(
+      user.id,
+      user.email,
+      user.name,
+      user.role,
+    );
     await this.saveRefreshToken(user.id, new_refresh_token);
 
     this.logger.info('Token refreshed successfully', { user_id: user.id });
