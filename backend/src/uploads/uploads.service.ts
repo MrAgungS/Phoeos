@@ -26,11 +26,25 @@ import { Queue } from 'bullmq';
 
 // Compressible MIME types
 const COMPRESSIBLE_MIME_TYPES = [
+  // Images
   'image/jpeg',
+  'image/jpg',
   'image/png',
   'image/webp',
+  'image/gif',
+  'image/tiff',
+  'image/bmp',
+  'image/avif',
+
+  // Videos
   'video/mp4',
   'video/webm',
+  'video/quicktime', // .mov
+  'video/x-msvideo', // .avi
+  'video/x-matroska', // .mkv
+  'video/3gpp', // .3gp
+  'video/mpeg',
+  'video/ogg',
 ];
 
 // logger.debug must be disabled in production

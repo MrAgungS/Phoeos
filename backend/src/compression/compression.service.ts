@@ -31,7 +31,9 @@ export class CompressionService {
       `compressed-${filename}${extension}`,
     );
     if (isImage) {
-      await this.runFfmpeg(this.buildImageArgs(input_path, output_path));
+      await this.runFfmpeg(
+        this.buildImageArgs(input_path, output_path, mime_type),
+      );
     } else if (isVideo) {
       await this.runFfmpeg(this.buildVideoArgs(input_path, output_path));
     } else {
@@ -42,17 +44,32 @@ export class CompressionService {
   }
 
   // FFmpeg command-line arguments for converting images to WebP
-  private buildImageArgs(input: string, output: string): string[] {
-    return [
-      '-i',
-      input,
-      '-vf',
-      'scale=iw:ih',
-      '-quality',
-      '80',
-      '-y', // Overwrite output without confirmation
-      output,
-    ];
+  private buildImageArgs(
+    input: string,
+    output: string,
+    mime_type: string,
+  ): string[] {
+    // GIF to WebP: requires -vf to handle multiple frames (animated GIF)
+    if (mime_type === 'image/gif') {
+      return [
+        '-i',
+        input,
+        '-vcodec',
+        'libwebp',
+        '-lossless',
+        '0',
+        '-quality',
+        '80',
+        '-loop',
+        '0', // Keep the loop count from the original GIF
+        '-y',
+        output,
+      ];
+    }
+
+    // TIFF & BMP to WebP: straightforward, no frames
+    // AVIF to WebP: decode first, then encode to WebP
+    return ['-i', input, '-vf', 'scale=iw:ih', '-quality', '80', '-y', output];
   }
 
   // FFmpeg command-line options for converting video to MP4 H.264
