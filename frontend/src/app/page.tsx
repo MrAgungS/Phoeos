@@ -1,4 +1,4 @@
-import { FeaturesGrid, HeroSection, HowItWorks, NavBar, QuoteBlock, SectionDivider, SiteFooter, StatsBar } from "@/components";
+import { FeaturesGrid, HeroSection, HowItWorks, NavBar, QuoteBlock, SectionDivider, SiteFooter, StatsBar } from "@/components/landing";
 
 export default function HomePage() {
   return (

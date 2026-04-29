@@ -5,8 +5,9 @@ import { useDropzone } from 'react-dropzone';
 import { uploadsApi } from '@/lib/api';
 import { formatBytes } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Upload, X, CheckCircle, AlertCircle, ImageIcon, Video, File, CloudUpload } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, ImageIcon, Video, File, CloudUpload } from 'lucide-react';
 import axios from 'axios';
+import { PageHeader } from '@/components/dashboard';
 
 type UploadState = 'idle' | 'initiating' | 'uploading' | 'confirming' | 'done' | 'error';
 
@@ -19,13 +20,7 @@ interface UploadItem {
   uploadId?: string;
 }
 
-function getIcon(mimeType: string) {
-  if (mimeType.startsWith('image/')) return <ImageIcon size={14} />;
-  if (mimeType.startsWith('video/')) return <Video size={14} />;
-  return <File size={14} />;
-}
-
-const stateLabel: Record<UploadState, string> = {
+const STATE_LABEL: Record<UploadState, string> = {
   idle: 'Queued',
   initiating: 'Preparing…',
   uploading: 'Uploading…',
@@ -34,38 +29,54 @@ const stateLabel: Record<UploadState, string> = {
   error: 'Failed',
 };
 
+const STATE_COLOR: Record<UploadState, string> = {
+  idle: 'var(--text-muted)',
+  initiating: 'var(--text-muted)',
+  uploading: 'var(--accent)',
+  confirming: 'var(--accent)',
+  done: 'var(--success)',
+  error: 'var(--destructive)',
+};
+
+function MediaIcon({ mimeType }: { mimeType: string }) {
+  if (mimeType.startsWith('image/')) return <ImageIcon size={13} />;
+  if (mimeType.startsWith('video/')) return <Video size={13} />;
+  return <File size={13} />;
+}
+
+const HOW_IT_WORKS = [
+  'Files are uploaded directly to secure cloud storage',
+  'Each file is versioned automatically on upload',
+  'You can restore any previous version from the Files page',
+];
+
 export default function UploadsPage() {
   const [items, setItems] = useState<UploadItem[]>([]);
 
-  const updateItem = (id: string, patch: Partial<UploadItem>) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
-  };
+  const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
+    setItems(prev => prev.map(i => (i.id === id ? { ...i, ...patch } : i)));
+  }, []);
 
-  const uploadFile = async (item: UploadItem) => {
+  const uploadFile = useCallback(async (item: UploadItem) => {
     updateItem(item.id, { state: 'initiating' });
     try {
-      // 1. Initiate
-      const initiateRes = await uploadsApi.initiate({
+      const { data: initData } = await uploadsApi.initiate({
         file_name: item.file.name,
         mime_type: item.file.type,
         size: item.file.size,
       });
-      const { upload_id, presigned_url } = initiateRes.data.data;
+      const { upload_id, presigned_url } = initData.data;
       updateItem(item.id, { uploadId: upload_id, state: 'uploading' });
 
-      // 2. Upload to S3
       let etag = '';
       await axios.put(presigned_url, item.file, {
         headers: { 'Content-Type': item.file.type },
-        onUploadProgress: (e) => {
+        onUploadProgress: e => {
           const pct = Math.round((e.loaded / (e.total || item.file.size)) * 100);
           updateItem(item.id, { progress: pct });
         },
-      }).then(res => {
-        etag = res.headers.etag || '';
-      });
+      }).then(res => { etag = res.headers.etag || ''; });
 
-      // 3. Confirm
       updateItem(item.id, { state: 'confirming' });
       await uploadsApi.confirm(upload_id, { etag });
       updateItem(item.id, { state: 'done', progress: 100 });
@@ -76,7 +87,7 @@ export default function UploadsPage() {
       updateItem(item.id, { state: 'error', error: msg });
       toast.error(msg);
     }
-  };
+  }, [updateItem]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newItems: UploadItem[] = acceptedFiles.map(file => ({
@@ -87,7 +98,7 @@ export default function UploadsPage() {
     }));
     setItems(prev => [...prev, ...newItems]);
     newItems.forEach(item => uploadFile(item));
-  }, []);
+  }, [uploadFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -97,130 +108,146 @@ export default function UploadsPage() {
     },
   });
 
-  const removeItem = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-  };
-
-  const clearDone = () => {
-    setItems(prev => prev.filter(i => i.state !== 'done'));
-  };
-
   const doneCount = items.filter(i => i.state === 'done').length;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {/* Header */}
-      <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-        <h1 className="font-display text-2xl" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-          Upload
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-          Drop your photos and videos here
-        </p>
-      </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <PageHeader title="Upload" description="Drop your photos and videos here" />
 
-      <div className="px-8 py-6 max-w-2xl">
+      <div style={{ padding: '24px 32px', maxWidth: 640 }}>
         {/* Dropzone */}
         <div
           {...getRootProps()}
-          className="relative flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all"
           style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '48px 32px',
+            borderRadius: 12,
             border: `2px dashed ${isDragActive ? 'var(--accent)' : 'var(--border)'}`,
             background: isDragActive ? 'var(--accent-subtle)' : 'var(--surface)',
-            padding: '3rem 2rem',
-            minHeight: '200px',
-          }}>
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            textAlign: 'center',
+          }}
+        >
           <input {...getInputProps()} />
-
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors"
-            style={{ background: isDragActive ? 'rgba(200,169,110,0.2)' : 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-            <CloudUpload size={20} style={{ color: isDragActive ? 'var(--accent-dark)' : 'var(--text-muted)' }} />
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+              background: isDragActive ? 'rgba(200,169,110,0.2)' : 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <CloudUpload size={18} style={{ color: isDragActive ? 'var(--accent-dark)' : 'var(--text-muted)' }} />
           </div>
-
-          <p className="text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
             {isDragActive ? 'Drop to upload' : 'Drop files here'}
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-            or <span className="underline underline-offset-2" style={{ color: 'var(--text-secondary)' }}>browse your files</span>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 300 }}>
+            or <span style={{ color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 2 }}>browse your files</span>
           </p>
-          <p className="text-xs mt-4" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-            Images & videos — JPEG, PNG, GIF, WebP, MP4, WebM, MOV
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 300, marginTop: 14, fontFamily: 'var(--font-mono)' }}>
+            JPEG · PNG · GIF · WebP · MP4 · WebM · MOV
           </p>
         </div>
 
-        {/* Upload queue */}
+        {/* Queue */}
         {items.length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
                 {items.length} file{items.length !== 1 ? 's' : ''}
               </p>
               {doneCount > 0 && (
                 <button
-                  onClick={clearDone}
-                  className="text-xs transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--text-muted)' }}>
+                  onClick={() => setItems(prev => prev.filter(i => i.state !== 'done'))}
+                  style={{ fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                >
                   Clear completed
                 </button>
               )}
             </div>
 
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {items.map(item => (
-                <div key={item.id}
-                  className="p-3 rounded-lg"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                      {getIcon(item.file.type)}
+                <div
+                  key={item.id}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* Icon */}
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <MediaIcon mimeType={item.file.type} />
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.file.name}
                         </span>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {item.state === 'done' && <CheckCircle size={13} style={{ color: 'var(--success)' }} />}
-                          {item.state === 'error' && <AlertCircle size={13} style={{ color: 'var(--destructive)' }} />}
-                          <span className="text-xs font-mono" style={{
-                            color: item.state === 'done' ? 'var(--success)'
-                              : item.state === 'error' ? 'var(--destructive)'
-                              : 'var(--text-muted)',
-                          }}>
-                            {stateLabel[item.state]}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          {item.state === 'done' && <CheckCircle size={12} style={{ color: 'var(--success)' }} />}
+                          {item.state === 'error' && <AlertCircle size={12} style={{ color: 'var(--destructive)' }} />}
+                          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: STATE_COLOR[item.state] }}>
+                            {STATE_LABEL[item.state]}
                           </span>
                           {(item.state === 'done' || item.state === 'error') && (
-                            <button onClick={() => removeItem(item.id)}
-                              className="transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-                              <X size={12} />
+                            <button
+                              onClick={() => setItems(prev => prev.filter(i => i.id !== item.id))}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}
+                            >
+                              <X size={11} />
                             </button>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+                      {/* Progress bar */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
                           <div
-                            className="h-full rounded-full transition-all duration-300"
                             style={{
+                              height: '100%',
+                              borderRadius: 2,
                               width: `${item.progress}%`,
-                              background: item.state === 'done' ? 'var(--success)'
-                                : item.state === 'error' ? 'var(--destructive)'
-                                : 'var(--accent)',
+                              background: STATE_COLOR[item.state],
+                              transition: 'width 0.3s ease',
                             }}
                           />
                         </div>
-                        <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
+                        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', flexShrink: 0 }}>
                           {formatBytes(item.file.size)}
                         </span>
                       </div>
 
                       {item.error && (
-                        <p className="text-xs mt-1" style={{ color: 'var(--destructive)', fontWeight: 300 }}>
-                          {item.error}
-                        </p>
+                        <p style={{ fontSize: 11, marginTop: 4, color: 'var(--destructive)', fontWeight: 300 }}>{item.error}</p>
                       )}
                     </div>
                   </div>
@@ -230,18 +257,26 @@ export default function UploadsPage() {
           </div>
         )}
 
-        {/* Tips */}
-        <div className="mt-8 p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>How uploads work</p>
-          <div className="space-y-1.5">
-            {[
-              'Files are uploaded directly to secure cloud storage',
-              'Each file is versioned automatically on upload',
-              'You can restore any previous version from the Files page',
-            ].map((tip, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="text-xs font-mono mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }}>0{i + 1}</span>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{tip}</p>
+        {/* How it works */}
+        <div
+          style={{
+            marginTop: 24,
+            padding: '16px 18px',
+            borderRadius: 10,
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 10 }}>
+            How uploads work
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {HOW_IT_WORKS.map((tip, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
+                  0{i + 1}
+                </span>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 300, lineHeight: 1.5 }}>{tip}</p>
               </div>
             ))}
           </div>
