@@ -5,7 +5,7 @@ CREATE TABLE users (
  password text,
  role enum('admin','user') default 'user',
  created_at timestamp default current_timestamp
-)
+);
 
 create TABLE files (
  id binary(16) primary key,
@@ -15,7 +15,7 @@ create TABLE files (
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  FOREIGN KEY (user_id) REFERENCES users(id)
-)
+);
 
 CREATE TABLE file_versions (
  id binary(16) primary key,
@@ -30,7 +30,7 @@ CREATE TABLE file_versions (
  etag varchar(255),
  created_at timestamp default current_timestamp,
  foreign key (file_id) references files(id)
-)
+);
 
 CREATE TABLE uploads (
  id BINARY(16) PRIMARY KEY,

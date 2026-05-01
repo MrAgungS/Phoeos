@@ -21,16 +21,31 @@ export class S3Service {
       secretAccessKey: process.env.RUSTFS_SECRET_KEY!,
     },
     forcePathStyle: true,
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
 
   async generatePresignedUrl(object_key: string, mime_type: string) {
+    const publicS3 = new S3Client({
+      endpoint: process.env.RUSTFS_PUBLIC_ENDPOINT!,
+      region: 'auto',
+      credentials: {
+        accessKeyId: process.env.RUSTFS_ACCESS_KEY!,
+        secretAccessKey: process.env.RUSTFS_SECRET_KEY!,
+      },
+      forcePathStyle: true,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
+    });
+
     const command = new PutObjectCommand({
       Bucket: process.env.RUSTFS_BUCKET!,
       Key: object_key,
       ContentType: mime_type,
+      ChecksumAlgorithm: undefined,
     });
 
-    return getSignedUrl(this.s3, command, { expiresIn: 900 });
+    return getSignedUrl(publicS3, command, { expiresIn: 900 });
   }
 
   async downloadToFile(

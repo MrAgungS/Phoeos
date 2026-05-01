@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import ffmpegStatic from 'ffmpeg-static';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -8,7 +7,9 @@ import os from 'os';
 @Injectable()
 export class CompressionService {
   private readonly logger = new Logger(CompressionService.name);
-  private readonly ffmpegPath = ffmpegStatic as unknown as string;
+  // you can use ffmpeg-static(or something else) instead of 'ffmpeg' if you prefer
+  // but because of Docker, im use 'ffmpeg' instead
+  private readonly ffmpegPath = 'ffmpeg';
 
   buildCompressionObjectKey(original_key: string, mime_type: string): string {
     const extension = mime_type.startsWith('video') ? '.mp4' : '.webp';

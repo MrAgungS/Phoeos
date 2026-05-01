@@ -23,8 +23,8 @@ export class FilesRepository {
     let mime_filter = '';
     const mime_params: unknown[] = [];
     if (mime_type) {
-      mime_filter = `AND mime_type = ?`;
-      mime_params.push(mime_type);
+      mime_filter = `AND fv.mime_type LIKE ?`;
+      mime_params.push(`${mime_type}%`);
     }
 
     // Query Data

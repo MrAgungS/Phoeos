@@ -81,9 +81,10 @@ export class CompressionProcessor extends WorkerHost {
       );
       this.logger.log(`Compression done for version ${version_id}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error ? err.message : JSON.stringify(err);
+      const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Compression failed for version ${version_id}: ${message}`,
+        `Compression failed for version ${version_id}: ${message}\n${stack}`,
       );
       // If all attempts have been used up, the status is “failed”
       // BullMQ will automatically retry if attemptsMade < maxAttempts
