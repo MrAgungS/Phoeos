@@ -61,24 +61,29 @@ export default function UploadsPage() {
     updateItem(item.id, { state: 'initiating' });
     try {
       const { data: initData } = await uploadsApi.initiate({
-        file_name: item.file.name,
+        filename: item.file.name,
         mime_type: item.file.type,
         size: item.file.size,
       });
       const { upload_id, presigned_url } = initData.data;
       updateItem(item.id, { uploadId: upload_id, state: 'uploading' });
-
+  
       let etag = '';
       await axios.put(presigned_url, item.file, {
-        headers: { 'Content-Type': item.file.type },
+        timeout: 300000,
         onUploadProgress: e => {
           const pct = Math.round((e.loaded / (e.total || item.file.size)) * 100);
           updateItem(item.id, { progress: pct });
         },
       }).then(res => { etag = res.headers.etag || ''; });
-
+  
       updateItem(item.id, { state: 'confirming' });
-      await uploadsApi.confirm(upload_id, { etag });
+      await uploadsApi.confirm(upload_id, {
+        etag,
+        filename: item.file.name,   // ← tambah ini
+        mime_type: item.file.type,  // ← tambah ini
+        size: item.file.size,       // ← tambah ini
+      });
       updateItem(item.id, { state: 'done', progress: 100 });
       toast.success(`${item.file.name} uploaded`);
     } catch (err: unknown) {

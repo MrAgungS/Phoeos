@@ -12,7 +12,7 @@ import { FilesService } from './files.service';
 import { CurrentUser } from 'src/security/decorators/current-user.decorator';
 import type { RequestUser } from 'src/users/interfaces/user.interface';
 
-@Controller('api/s3/files')
+@Controller('api/s3/files/')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}

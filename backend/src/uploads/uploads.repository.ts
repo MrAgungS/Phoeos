@@ -127,10 +127,10 @@ export class UploadsRepository {
     const file_id = UuidUtils.generateBinary();
     await this.databaseService.execute(
       `
-      INSERT INTO file_versions (upload_id, file_id)
+      INSERT INTO files (id, user_id)
       VALUES (?, ?)
     `,
-      [UuidUtils.toUuidBinary(user_id), file_id],
+      [file_id, UuidUtils.toUuidBinary(user_id)],
     );
     return UuidUtils.toUuidString(file_id);
   }

@@ -11,3 +11,11 @@ So, what is Selphos? It’s simple—I’m just experimenting with how cloud-bas
 The current design may not be up to the highest standard. Under the MIT License, you are free to use, modify, and adapt the frontend to suit your own needs. Please refer to the file below to review the API response structure for each endpoint.
 
 [API & Frontend Docs](/docs/foryou.md)
+
+---
+
+# Setup
+Make sure you follow this :
+* Docker - you need this to run Selphos
+* Nginx - recommended as a reverse proxy
+* SSL Certificate - if you wanna deploy to VPS

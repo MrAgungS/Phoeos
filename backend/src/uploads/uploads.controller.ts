@@ -7,7 +7,7 @@ import { ConfirmUploadDto } from 'src/model/uploads.model';
 import type { RequestUser } from 'src/users/interfaces/user.interface';
 
 // CurrentUser is a custom decorator for retrieving authenticated user data from a JWT.
-@Controller('/api/s3/uploads')
+@Controller('/api/s3/uploads/')
 @UseGuards(JwtAuthGuard)
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
@@ -24,19 +24,19 @@ export class UploadsController {
   @Post(':upload_id/confirm')
   async confirmUpload(
     @CurrentUser() user: RequestUser,
-    @Param('upload_id') uploadId: string,
+    @Param('upload_id') upload_id: string,
     @Body() dto: ConfirmUploadDto,
   ) {
     const data = await this.uploadsService.confirmUpload(
-      uploadId,
       user.id,
+      upload_id,
       dto,
     );
     return { data };
   }
   @Get(':upload_id/status')
-  async getUploadStatus(@Param('upload_id') uploadId: string) {
-    const data = await this.uploadsService.getUploadStatus(uploadId);
+  async getUploadStatus(@Param('upload_id') upload_id: string) {
+    const data = await this.uploadsService.getUploadStatus(upload_id);
     return { data };
   }
 }

@@ -66,10 +66,10 @@ export const filesApi = {
 
 // Uploads
 export const uploadsApi = {
-  initiate: (data: { file_name: string; mime_type: string; size: number }) =>
+  initiate: (data: { filename: string; mime_type: string; size: number }) =>
     api.post('/api/s3/uploads/initiate', data),
-  confirm: (upload_id: string, data: { etag: string }) =>
-    api.post(`/api/s3/uploads/${upload_id}/confirm`, data),
+    confirm: (upload_id: string, data: { etag: string; filename: string; mime_type: string; size: number }) =>
+      api.post(`/api/s3/uploads/${upload_id}/confirm`, data),
   getStatus: (upload_id: string) =>
     api.get(`/api/s3/uploads/${upload_id}/status`),
 };

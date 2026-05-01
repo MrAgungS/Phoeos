@@ -57,7 +57,7 @@ export class UsersService {
   }
 
   private async saveRefreshToken(user_id: string, refresh_token: string) {
-    const hashed = await bcrypt.hash(refresh_token, 10);
+    const hashed = await bcrypt.hash(refresh_token, 12);
     await this.redisService.set(
       `refresh_token:${user_id}`,
       hashed,
@@ -84,7 +84,7 @@ export class UsersService {
       throw new ConflictException('email already exists');
     }
 
-    registerRequest.password = await bcrypt.hash(registerRequest.password, 10);
+    registerRequest.password = await bcrypt.hash(registerRequest.password, 12);
 
     const user = await this.usersRepository.create(
       registerRequest.name,

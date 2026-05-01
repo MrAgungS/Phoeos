@@ -39,8 +39,12 @@ export default function FilesPage() {
       if (mimeFilter) params.mime_type = mimeFilter;
       const res = await filesApi.list(params);
       const payload = res.data.data;
-      setFiles(payload.data || payload || []);
-      setTotal(payload.total || 0);
+
+      const fileList = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+      const fileTotal = payload?.total ?? fileList.length;
+  
+      setFiles(fileList);
+      setTotal(fileTotal);
     } catch {
       toast.error('Failed to load files');
     } finally {
