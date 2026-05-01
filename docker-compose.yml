@@ -1,16 +1,107 @@
 services:
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: rustfs
+    container_name: rustfs-selphos
     ports:
-      - ${RUSTFS_ENDPOINT_PORT} 
-      - ${RUSTFS_ENDPOINT_PORTS} 
+      - "${RUSTFS_ENDPOINT_PORT}:${RUSTFS_ENDPOINT_PORT}"
+      - "${RUSTFS_ENDPOINT_PORTS}:${RUSTFS_ENDPOINT_PORTS}"
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
     volumes:
       - rustfs_data:/data
     command: server /data --console-address ":${RUSTFS_CONSOLE_PORT}"
+    networks:
+      - selphos-network
+
+  mysql:
+    image: mysql:lts
+    container_name: mysql-selphos
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - selphos-network
+  redis:
+    image: redis:8-alpine
+    container_name: redis-selphos
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - selphos-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-selphos
+    ports:
+      - "3030:3030"
+    environment:
+      NODE_ENV: production
+      PORT: 3030
+      FRONTEND_URL: ${FRONTEND_URL}
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@mysql:3306/${DB_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB}
+      REDIS_DB_BULLMQ: ${REDIS_DB_BULLMQ}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      RUSTFS_ENDPOINT: ${RUSTFS_ENDPOINT}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET}
+      RUSTFS_COMPRESSED_BUCKET: ${RUSTFS_COMPRESSED_BUCKET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - selphos-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-selphos
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - backend
+    networks:
+      - selphos-network
+    restart: unless-stopped
 
 volumes:
   rustfs_data:
+  mysql_data:
+  redis_data:
+
+networks:
+  selphos-network:
+    driver: bridge

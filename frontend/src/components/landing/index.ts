@@ -1,0 +1,9 @@
+export { default as NavBar } from './NavBar';
+export { default as HeroBadge } from './HeroBadge';
+export { default as HeroSection } from './HeroSection';
+export { default as StatsBar } from './StatsBar';
+export { default as FeaturesGrid } from './FeaturesGrid';
+export { default as SectionDivider } from './SectionDivider';
+export { default as HowItWorks } from './HowItWorks';
+export { default as QuoteBlock } from './QuoteBlock';
+export { default as SiteFooter } from './SiteFooter';
